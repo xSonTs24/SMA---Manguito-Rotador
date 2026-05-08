@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>RotaCare</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div id="desktop-warning">
+    <div class="desktop-card">
+      <div class="desktop-icon">📱</div>
+      <h1>Usa tu celular</h1>
+      <p>Esta aplicación está pensada para usarse en pantalla vertical.</p>
+    </div>
+  </div>
+
+  <div id="app">
+    <!-- 1. Bienvenida -->
+    <section class="screen active" id="screen-home">
+      <div class="phone-card hero-card">
+        <div class="topbar">
+          <span class="brand-left">🔥</span>
+          <span class="brand-name">RotaCare</span>
+          <span class="brand-right">🔥</span>
+        </div>
+
+        <div class="hero-media">
+          <img src="img/hero_hombro.jpg" alt="Bienvenida"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <div class="hero-fallback">HOMBROS</div>
+        </div>
+
+        <div class="hero-copy">
+          <h1>BIENVENIDO</h1>
+          <p>A tu mejor aliado para calentar los <strong>HOMBROS</strong></p>
+        </div>
+
+        <button class="primary-btn" onclick="goTo('instructions')">Iniciar Calentamiento</button>
+        <div class="camera-note"><span>📷</span> Usa el celular en posición vertical</div>
+      </div>
+    </section>
+
+    <!-- 2. Antes de comenzar -->
+    <section class="screen" id="screen-instructions">
+      <div class="phone-card">
+        <div class="topbar">
+          <button class="icon-btn" onclick="goTo('home')" aria-label="Volver">←</button>
+          <span class="brand-name">RotaCare</span>
+          <span class="brand-right">⚙️</span>
+        </div>
+
+        <h2 class="section-title">Antes de Comenzar</h2>
+        <p class="section-subtitle">Para una mejor detección, recuerda:</p>
+
+        <div class="tip-list">
+          <div class="tip-card">
+            <div class="tip-ico">📱</div>
+            <div>
+              <h3>Vertical</h3>
+              <p>Coloca tu celular en vertical y un poco a la altura de tus hombros.</p>
+            </div>
+          </div>
+          <div class="tip-card">
+            <div class="tip-ico">📏</div>
+            <div>
+              <h3>Distancia</h3>
+              <p>Aléjate entre 1.5 y 2 metros para lograr una mejor captura.</p>
+            </div>
+          </div>
+          <div class="tip-card">
+            <div class="tip-ico">💡</div>
+            <div>
+              <h3>Luz</h3>
+              <p>Asegúrate de tener buena iluminación frontal.</p>
+            </div>
+          </div>
+          <div class="tip-card">
+            <div class="tip-ico">🧍</div>
+            <div>
+              <h3>Postura</h3>
+              <p>Mantén el cuerpo visible y evita cubrir el brazo con objetos.</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="primary-btn" onclick="goTo('explanation')" id="btn-instructions-ok">¡Entendido!</button>
+      </div>
+    </section>
+
+    <!-- 3. Explicación / preparación -->
+    <section class="screen" id="screen-explanation">
+      <div class="phone-card">
+
+        <p class="prep-next-label">Próximo ejercicio</p>
+        <h2 class="prep-exercise-title" id="prep-name">Elevación Lateral</h2>
+
+        <div class="exercise-preview">
+          <img id="prep-img" src="img/lateral.png" alt="Ejercicio"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <div class="exercise-fallback">Imagen del ejercicio</div>
+        </div>
+
+        <p class="exercise-instruction" id="prep-instruction">
+          Levanta el brazo hacia un costado, sin superar la altura del hombro.
+        </p>
+
+        <div class="prep-countdown-wrap">
+          <p class="prep-starts-label">Comienza en:</p>
+          <div class="prep-circle-wrap">
+            <svg class="prep-circle-svg" viewBox="0 0 100 100">
+              <circle class="prep-circle-bg" cx="50" cy="50" r="44" />
+              <circle class="prep-circle-fill" id="prep-circle-fill" cx="50" cy="50" r="44" />
+            </svg>
+            <div class="prep-circle-inner">
+              <span class="prep-circle-number" id="prep-seconds">5</span>
+              <span class="prep-circle-sub">segundos</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 4. Ejercicio -->
+    <section class="screen exercise-screen" id="screen-exercise">
+      <!-- Cámara ocupa toda la pantalla, HUD flotante encima -->
+      <div class="canvas-wrap" id="camera-shell">
+        <canvas id="canvas-cam" style="display:none"></canvas>
+        <canvas id="canvas-overlay" style="display:none"></canvas>
+        <!-- Canvas visible al usuario, solo para mostrar -->
+        <canvas id="canvas-display"
+          style="position:absolute;inset:0;width:100%;height:100%;z-index:1;object-fit:cover;"></canvas>
+
+        <img id="fire-video" src="music/fuego.gif" alt=""
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;opacity:0;pointer-events:none;transition:opacity .3s ease;" />
+        <!-- <video id="fire-video" src="music/fire.webm" autoplay loop muted playsinline
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;opacity:0;pointer-events:none;transition:opacity .3s ease;">
+        </video>*/-->
+        <div id="fire-banner" class="event-banner fire-banner" style="display:none;">
+          <div class="event-emoji">🔥</div>
+          <div class="event-title">¡APAGA EL FUEGO!</div>
+          <div id="fire-reps-left" class="event-counter">5 reps</div>
+        </div>
+
+        <div id="bug-banner" class="event-banner bug-banner" style="display:none;">
+          <div class="event-emoji">🐛🦟🐜</div>
+          <div class="event-title">¡ELIMINA LOS BICHOS!</div>
+          <div id="bug-count-display" class="event-counter">10 insectos</div>
+        </div>
+
+        <div id="rep-flash">+1 REP</div>
+
+        <div id="ref-img-wrap" class="ref-badge">
+          <img id="ref-img" src="" alt="Referencia" />
+          <div id="ref-img-label">REFERENCIA</div>
+        </div>
+
+        <!-- HUD superior flotante -->
+        <div class="ex-hud-top">
+          <div class="ex-chip">
+            <span id="exercise-name">Elevación Lateral</span>
+          </div>
+          <div class="ex-chip ex-chip-arm" id="arm-label">Brazo Derecho</div>
+        </div>
+
+        <!-- HUD inferior flotante -->
+        <div class="ex-hud-bottom">
+          <div class="ex-metric">
+            <span class="ex-metric-val" id="count-reps">0</span>
+            <span class="ex-metric-lbl">REPS</span>
+          </div>
+          <div class="ex-divider"></div>
+          <div class="ex-metric">
+            <span class="ex-metric-val" id="time-left">01:00</span>
+            <span class="ex-metric-lbl">TIEMPO</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. Cambio de brazo -->
+    <section class="screen" id="screen-change-arm">
+      <div class="phone-card" style="justify-content:center; gap:20px;">
+
+        <div class="change-check">✓</div>
+
+        <div style="text-align:center;">
+          <h2 class="change-title">Muy bien</h2>
+          <p class="change-subtitle">Ahora cambia<br>de brazo</p>
+        </div>
+
+        <div class="change-img-wrap">
+          <img id="change-arm" src="img/change.png" alt="Cambia de brazo" onerror="this.style.display='none'" />
+        </div>
+
+      </div>
+    </section>
+    <!-- 6. Completar ejercicio -->
+    <section class="screen" id="screen-complete-ex">
+      <div class="phone-card">
+
+        <h2 class="complete-title">¡Ejercicio completado!</h2>
+
+        <div class="complete-icon-wrap">
+          <div class="complete-icon">🏋️</div>
+        </div>
+
+        <div class="complete-stats">
+
+          <div class="complete-stat-row">
+            <div class="complete-stat-icon">✅</div>
+            <div class="complete-stat-info">
+              <span class="complete-stat-label">Repeticiones válidas</span>
+              <span class="complete-stat-value" id="result-reps">0</span>
+            </div>
+          </div>
+
+          <div class="complete-stat-row">
+            <div class="complete-stat-icon">🕐</div>
+            <div class="complete-stat-info">
+              <span class="complete-stat-label">Tiempo total</span>
+              <span class="complete-stat-value" id="result-time">01:00</span>
+            </div>
+          </div>
+
+          <div class="complete-stat-row">
+            <div class="complete-stat-icon">📊</div>
+            <div class="complete-stat-info">
+              <span class="complete-stat-label">Brazo izquierdo</span>
+              <span class="complete-stat-value" id="result-left">0</span>
+            </div>
+          </div>
+
+          <div class="complete-stat-row">
+            <div class="complete-stat-icon">📊</div>
+            <div class="complete-stat-info">
+              <span class="complete-stat-label">Brazo derecho</span>
+              <span class="complete-stat-value" id="result-right">0</span>
+            </div>
+          </div>
+
+        </div>
+
+        <button class="primary-btn" style="margin-top:auto" onclick="nextExercise()">
+          Continuar
+        </button>
+
+      </div>
+    </section>
+
+    <!-- 7. Final -->
+    <section class="screen" id="screen-finish">
+      <div class="phone-card" style="gap:16px;">
+
+        <!-- Trofeo con confeti -->
+        <div class="finish-trophy-wrap">
+          <div class="finish-confetti">🎊</div>
+          <div class="finish-trophy-icon">🏆</div>
+          <div class="finish-confetti">🎉</div>
+        </div>
+
+        <!-- Título -->
+        <div style="text-align:center;">
+          <h2 class="finish-title">¡Rutina<br>completada!</h2>
+          <p class="finish-subtitle">Ya puedes comenzar<br>con tu entrenamiento.</p>
+        </div>
+
+        <!-- Total reps -->
+        <div class="finish-stat-box">
+          <span class="finish-stat-label">Total de repeticiones válidas</span>
+          <strong class="finish-stat-value" id="total-reps">0</strong>
+        </div>
+
+        <!-- Consejo -->
+        <div class="finish-tip-box">
+          <div class="finish-tip-header">
+            <span class="finish-tip-icon">💡</span>
+            <span class="finish-tip-title">Consejo</span>
+          </div>
+          <p class="finish-tip-text" id="final-tip">
+            No olvides calentar siempre antes de entrenar para prevenir lesiones y mejorar tu desempeño.
+          </p>
+        </div>
+
+        <button class="primary-btn" style="background:#2e8b6e;margin-top:auto;" onclick="restartRoutine()">
+          ¡Vamos a entrenar!
+        </button>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- DEV NAV — eliminar en producción -->
+  <div id="dev-nav" style="
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  display:flex; gap:8px; z-index:9999; flex-wrap:wrap; justify-content:center;
+  background:rgba(0,0,0,.7); padding:10px 14px; border-radius:20px;">
+    <button onclick="goTo('home')"
+      style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#334;color:#fff">🏠 Home</button>
+    <button onclick="goTo('instructions')"
+      style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#334;color:#fff">📋
+      Instruc</button>
+    <button onclick="goTo('explanation')"
+      style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#334;color:#fff">📖
+      Explic</button>
+    <button onclick="goTo('exercise')"
+      style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#334;color:#fff">💪
+      Ejercicio</button>
+    <button onclick="goTo('change-arm')"
+      style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#334;color:#fff">🔄
+      Cambio</button>
+    <button onclick="goTo('complete-ex')"
+      style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#334;color:#fff">✅
+      Completo</button>
+    <button onclick="goTo('finish')"
+      style="font-size:11px;padding:4px 10px;border-radius:8px;border:none;background:#334;color:#fff">🏆 Final</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="vision.js"></script>
+  <script src="app.js"></script>
+
+  <script>
+    // Mostrar/ocultar con tecla D
+    document.addEventListener('keydown', e => {
+      if (e.key === 'd' || e.key === 'D') {
+        const nav = document.getElementById('dev-nav');
+        nav.style.display = nav.style.display === 'none' ? 'flex' : 'none';
+      }
+    });
+  </script>
+</body>
+
+</html>
