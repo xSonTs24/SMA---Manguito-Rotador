@@ -37,75 +37,176 @@
           <h1>BIENVENIDO</h1>
           <p>A tu mejor aliado para calentar los <strong>HOMBROS</strong></p>
         </div>
-
-        <button class="primary-btn" onclick="goTo('instructions')">Iniciar Calentamiento</button>
+        <div class="botons">
+          <button class="primary-btn" onclick="goTo('about')">Saber Más</button>
+          <button class="primary-btn" onclick="goTo('instructions')">Iniciar Calentamiento</button>
+        </div>
         <div class="camera-note"><span>📷</span> Usa el celular en posición vertical</div>
+      </div>
+    </section>
+
+    <!-- 1.1 Información -->
+    <section class="screen" id="screen-about">
+      <div class="phone-card" style="gap:16px;">
+
+        <!-- Topbar -->
+        <div class="topbar">
+          <button class="icon-btn" onclick="goTo('home')">←</button>
+          <span class="brand-name">Saber más</span>
+          <span style="width:32px"></span>
+        </div>
+
+        <!-- Hero imagen -->
+        <div class="about-hero-img">
+          <img src="imagenes%20Rotacare/saber%20mas/imagen%20hombro.png" alt="Hombro"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <div class="exercise-fallback">MANGUITO ROTADOR</div>
+          <div class="about-hero-overlay">
+            <p class="about-hero-text">Prepara tus hombros<br>antes de entrenar</p>
+          </div>
+        </div>
+
+        <!-- Intro -->
+        <p class="about-intro">Activa el manguito rotador antes de ejercicios de fuerza como:</p>
+
+        <!-- Ejercicios -->
+        <div class="about-exercises">
+          <div class="about-exercise-card">
+            <img src="imagenes%20Rotacare/saber%20mas/press%20banca.png" alt="Press Banca"
+              onerror="this.style.display='none';" />
+            <span>Press Banca</span>
+          </div>
+          <div class="about-exercise-card">
+            <img src="imagenes%20Rotacare/saber%20mas/press%20militar.png" alt="Press Militar"
+              onerror="this.style.display='none';" />
+            <span>Press Militar</span>
+          </div>
+        </div>
+
+        <!-- ¿Qué harás? -->
+        <div class="about-section-box">
+          <h3 class="about-section-title">¿Qué harás?</h3>
+          <p class="about-section-text">Durante esta rutina realizarás movimientos guiados para preparar el hombro. El
+            sistema analizará tu movimiento en tiempo real y te dará retroalimentación visual y sonora.</p>
+        </div>
+
+        <!-- Advertencia -->
+        <div class="about-warning-box">
+          <span class="about-warning-icon">⚠️</span>
+          <p class="about-warning-text">Si sientes dolor o incomodidad fuerte, detén la rutina. Esta experiencia es
+            preventiva y no reemplaza una valoración médica o fisioterapéutica.</p>
+        </div>
+
+        <button class="primary-btn" style="margin-top:auto;" onclick="goTo('instructions')">
+          Iniciar Calentamiento
+        </button>
+
       </div>
     </section>
 
     <!-- 2. Antes de comenzar -->
     <section class="screen" id="screen-instructions">
-      <div class="phone-card">
-        <div class="topbar">
-          <button class="icon-btn" onclick="goTo('home')" aria-label="Volver">←</button>
-          <span class="brand-name">RotaCare</span>
-          <span class="brand-right">⚙️</span>
+      <div class="phone-card instructions-card">
+
+        <!-- CONTENIDO -->
+        <div class="instructions-content">
+
+          <div class="topbar">
+            <button class="icon-btn" onclick="goTo('home')" aria-label="Volver">←</button>
+            <span class="brand-name">RotaCare</span>
+            <span class="brand-right">⚙️</span>
+          </div>
+
+          <div class="instructions-header">
+            <h2 class="section-title">Antes de Comenzar</h2>
+            <p class="section-subtitle">
+              Para una mejor detección, recuerda:
+            </p>
+          </div>
+
+          <div class="tip-list">
+
+            <div class="tip-card">
+              <div class="tip-ico">
+                <img src="imagenes%20Rotacare/indicaciones/iconocelular.png" alt="Celular vertical">
+              </div>
+
+              <div>
+                <h3>Vertical</h3>
+                <p>
+                  Coloca tu celular en vertical y un poco a la altura de tus hombros.
+                </p>
+              </div>
+            </div>
+
+            <div class="tip-card">
+              <div class="tip-ico">
+                <img src="imagenes%20Rotacare/indicaciones/distancia.png" alt="Distancia recomendada">
+              </div>
+
+              <div>
+                <h3>Distancia</h3>
+                <p>
+                  Aléjate entre 1.5 y 2 metros para lograr una mejor captura.
+                </p>
+              </div>
+            </div>
+
+            <div class="tip-card">
+              <div class="tip-ico">
+                <img src="imagenes%20Rotacare/indicaciones/iluminacion.png" alt="Buena iluminación">
+              </div>
+
+              <div>
+                <h3>Luz</h3>
+                <p>
+                  Asegúrate de tener buena iluminación frontal.
+                </p>
+              </div>
+            </div>
+
+            <div class="tip-card">
+              <div class="tip-ico">
+                <img src="imagenes%20Rotacare/indicaciones/ropacomoda.png" alt="Ropa cómoda">
+              </div>
+
+              <div>
+                <h3>Postura</h3>
+                <p>
+                  Mantén el cuerpo visible y evita cubrir el brazo con objetos.
+                </p>
+              </div>
+            </div>
+
+          </div>
         </div>
 
-        <h2 class="section-title">Antes de Comenzar</h2>
-        <p class="section-subtitle">Para una mejor detección, recuerda:</p>
+        <!-- BOTÓN -->
+        <button class="primary-btn" onclick="goTo('explanation')" id="btn-instructions-ok">
+          ¡Entendido!
+        </button>
 
-        <div class="tip-list">
-          <div class="tip-card">
-            <div class="tip-ico">📱</div>
-            <div>
-              <h3>Vertical</h3>
-              <p>Coloca tu celular en vertical y un poco a la altura de tus hombros.</p>
-            </div>
-          </div>
-          <div class="tip-card">
-            <div class="tip-ico">📏</div>
-            <div>
-              <h3>Distancia</h3>
-              <p>Aléjate entre 1.5 y 2 metros para lograr una mejor captura.</p>
-            </div>
-          </div>
-          <div class="tip-card">
-            <div class="tip-ico">💡</div>
-            <div>
-              <h3>Luz</h3>
-              <p>Asegúrate de tener buena iluminación frontal.</p>
-            </div>
-          </div>
-          <div class="tip-card">
-            <div class="tip-ico">🧍</div>
-            <div>
-              <h3>Postura</h3>
-              <p>Mantén el cuerpo visible y evita cubrir el brazo con objetos.</p>
-            </div>
-          </div>
-        </div>
-
-        <button class="primary-btn" onclick="goTo('explanation')" id="btn-instructions-ok">¡Entendido!</button>
       </div>
     </section>
 
     <!-- 3. Explicación / preparación -->
     <section class="screen" id="screen-explanation">
       <div class="phone-card">
+        <div class="prep-content">
 
-        <p class="prep-next-label">Próximo ejercicio</p>
-        <h2 class="prep-exercise-title" id="prep-name">Elevación Lateral</h2>
+          <p class="prep-next-label">Próximo ejercicio</p>
+          <h2 class="prep-exercise-title" id="prep-name">Elevación Lateral</h2>
 
-        <div class="exercise-preview">
-          <img id="prep-img" src="img/lateral.png" alt="Ejercicio"
-            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-          <div class="exercise-fallback">Imagen del ejercicio</div>
+          <div class="exercise-preview">
+            <img id="prep-img" src="img/rotacion.png" alt="Ejercicio"
+              onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+            <div class="exercise-fallback">Imagen del ejercicio</div>
+          </div>
+
+          <p class="exercise-instruction" id="prep-instruction">
+            Levanta el brazo hacia un costado, sin superar la altura del hombro.
+          </p>
         </div>
-
-        <p class="exercise-instruction" id="prep-instruction">
-          Levanta el brazo hacia un costado, sin superar la altura del hombro.
-        </p>
 
         <div class="prep-countdown-wrap">
           <p class="prep-starts-label">Comienza en:</p>
@@ -139,7 +240,7 @@
         <!-- <video id="fire-video" src="music/fire.webm" autoplay loop muted playsinline
           style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:3;opacity:0;pointer-events:none;transition:opacity .3s ease;">
         </video>*/-->
-        <div id="fire-banner" class="event-banner fire-banner" style="display:none;">
+        <div id="fire-banner" class="event-banner fire-banner"> style="display:none;"
           <div class="event-emoji">🔥</div>
           <div class="event-title">¡APAGA EL FUEGO!</div>
           <div id="fire-reps-left" class="event-counter">5 reps</div>
