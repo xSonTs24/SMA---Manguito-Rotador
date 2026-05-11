@@ -185,9 +185,9 @@ function uiArmUpdate() {
 // IMÁGENES DE REFERENCIA
 // ================================================================
 const REF_IMAGES = {
-  lateral: "imagenes%20Rotacare/ejercicio%20en%20camara/lateral.png",
-  frontal: "imagenes%20Rotacare/ejercicio%20en%20camara/frontal.png",
-  rotacion: "imagenes%20Rotacare/ejercicio%20en%20camara/rotacion.png",
+  lateral: "img/lateral.png",
+  frontal: "img/frontal.png",
+  rotacion: "img/rotacion.png",
 };
 
 function updateRefImage(key) {
@@ -391,21 +391,6 @@ function toggleMusic() {
   }
 }
 
-
-function startMusic() {
-  initBgAudio();
-  if (!bgAudio) return;
-  musicOn = true;
-  musicLevel = -1;
-  try { bgAudio.play().catch(() => { }); } catch (_) { }
-  setMusicLevel(currentFilterLevel);
-}
-
-function stopMusic() {
-  musicOn = false;
-  try { if (bgAudio) bgAudio.pause(); } catch (_) { }
-}
-
 // ================================================================
 // MODELOS
 // ================================================================
@@ -429,16 +414,9 @@ const MODELS = {
 // VARIABLES GLOBALES
 // ================================================================
 let model, webcam;
-let modelCache = {};
 let ctxCam, ctxOverlay, ctxMirror;
 let mirrorCanvas;
 let mpPose, mpCamera;
-let sharedStream = null;
-let sharedVideo = null;
-let tmCanvas = null;
-let tmCtx = null;
-let mpLoopActive = false;
-let mpFrameBusy = false;
 let angleHistory = [];
 const SMOOTH_N = 6;
 
@@ -452,83 +430,6 @@ let repsRight = 0;
 let repsLeft = 0;
 let totalReps = 0;
 let score = 0;
-
-
-// ================================================================
-// CÁMARA COMPARTIDA
-// ================================================================
-function cameraTrackIsLive() {
-  return !!(sharedStream && sharedStream.getVideoTracks().some(t => t.readyState === "live"));
-}
-
-async function ensureSharedCamera() {
-  if (!sharedVideo) {
-    sharedVideo = document.createElement("video");
-    sharedVideo.id = "rc-shared-video";
-    sharedVideo.autoplay = true;
-    sharedVideo.muted = true;
-    sharedVideo.playsInline = true;
-    sharedVideo.setAttribute("playsinline", "");
-    sharedVideo.style.display = "none";
-    document.body.appendChild(sharedVideo);
-  }
-
-  if (!cameraTrackIsLive()) {
-    sharedStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "user",
-        width: { ideal: 640 },
-        height: { ideal: 640 },
-      },
-      audio: false,
-    });
-    sharedVideo.srcObject = sharedStream;
-  }
-
-  if (sharedVideo.readyState < 2) {
-    await new Promise((resolve) => {
-      const done = () => {
-        sharedVideo.removeEventListener("loadedmetadata", done);
-        sharedVideo.removeEventListener("canplay", done);
-        resolve();
-      };
-      sharedVideo.addEventListener("loadedmetadata", done, { once: true });
-      sharedVideo.addEventListener("canplay", done, { once: true });
-      setTimeout(resolve, 800);
-    });
-  }
-
-  try { await sharedVideo.play(); } catch (_) { }
-  return sharedVideo;
-}
-
-function releaseSharedCamera() {
-  try {
-    if (sharedStream) {
-      sharedStream.getTracks().forEach(t => t.stop());
-    }
-  } catch (_) { }
-  sharedStream = null;
-  if (sharedVideo) {
-    try { sharedVideo.pause(); } catch (_) { }
-    sharedVideo.srcObject = null;
-  }
-}
-
-function drawSharedVideoToCanvas(canvas, mirrored = true) {
-  if (!canvas || !sharedVideo) return;
-  const ctx = canvas.getContext("2d");
-  const w = canvas.width || 400;
-  const h = canvas.height || 400;
-  ctx.save();
-  if (mirrored) {
-    ctx.scale(-1, 1);
-    ctx.drawImage(sharedVideo, -w, 0, w, h);
-  } else {
-    ctx.drawImage(sharedVideo, 0, 0, w, h);
-  }
-  ctx.restore();
-}
 
 // Config getters (safe)
 const confUp = () => {
@@ -863,49 +764,58 @@ async function toggleStart() {
   if (running) {
     running = false;
     tmLoopActive = false;
-    mpLoopActive = false;
-    mpFrameBusy = false;
 
-    if (webcam && typeof webcam.stop === "function") {
+    if (webcam) {
       try { webcam.stop(); } catch (_) { }
+      webcam = null;
     }
-    webcam = null;
+
+    // 👇 Solo pausar mpCamera, NO destruirla ni poner null
+    if (mpCamera) {
+      try { mpCamera.stop(); } catch (_) { }
+      // NO hacer: mpCamera = null  ← esto causaba el crash
+    }
+
+    // Liberar solo el stream del video, NO el video element
+    const mpVid = $("mp-video");
+    if (mpVid && mpVid.srcObject) {
+      try {
+        mpVid.srcObject.getTracks().forEach(t => t.stop());
+        mpVid.srcObject = null;
+      } catch (_) { }
+    }
 
     cancelFireEvent();
     cancelBugEvent();
-    resetCombo();
-
     const btn = $("btn-start");
     if (btn) btn.textContent = "▶ INICIAR";
     uiStatus("Detenido.");
     emit("running", false);
     return;
   }
-
   resizeCanvases();
-  await ensureSharedCamera();
 
   uiStatus("Iniciando " + selectedKey + "...");
   const btn = $("btn-start");
   if (btn) btn.textContent = "⏳ CARGANDO...";
 
   try {
-    resetCounters();
-    running = true;
+    /*ctxCam = getCanvasCtx("canvas-cam");
+    ctxOverlay = getCanvasCtx("canvas-overlay");
+    if (!ctxCam || !ctxOverlay) throw new Error("No se encontraron canvas de cámara");*/
 
     if (selectedKey === "lateral") await startLateral();
     else await startTM();
 
     startDisplayLoop();
 
+    resetCounters();
+    running = true;
     if (btn) btn.textContent = "⏹ DETENER";
     uiStatus("✓ Corriendo: " + selectedKey);
     uiLog("Iniciado: " + selectedKey, "info");
     emit("running", true);
   } catch (e) {
-    running = false;
-    tmLoopActive = false;
-    mpLoopActive = false;
     uiStatus("Error: " + e.message);
     if (btn) btn.textContent = "▶ INICIAR";
     uiLog("Error: " + e.message, "bad");
@@ -917,7 +827,25 @@ async function toggleStart() {
 // MODO LATERAL — MediaPipe
 // ================================================================
 async function startLateral() {
-  const vid = await ensureSharedCamera();
+  // Si mpCamera ya existe y está corriendo, solo reanudar
+  if (mpCamera) {
+    try { await mpCamera.start(); } catch (_) { }
+    return;
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "user", width: 400, height: 400 },
+  });
+
+  let vid = $("mp-video");
+  if (!vid) {
+    vid = document.createElement("video");
+    vid.id = "mp-video";
+    vid.style.display = "none";
+    document.body.appendChild(vid);
+  }
+  vid.srcObject = stream;
+  await vid.play();
 
   if (!mpPose) {
     mpPose = new Pose({
@@ -932,23 +860,19 @@ async function startLateral() {
     mpPose.onResults(onMPResults);
   }
 
-  mpLoopActive = true;
-  requestAnimationFrame(async function mpTick() {
-    if (!mpLoopActive || !running || selectedKey !== "lateral") return;
-
-    if (!mpFrameBusy) {
-      mpFrameBusy = true;
-      try {
+  // Solo crear mpCamera una vez y nunca destruirla
+  if (!mpCamera) {
+    mpCamera = new Camera(vid, {
+      onFrame: async () => {
+        if (!running) return; // 👈 guard para no procesar si está detenido
         await mpPose.send({ image: vid });
-      } catch (err) {
-        console.warn("MediaPipe frame error:", err);
-      } finally {
-        mpFrameBusy = false;
-      }
-    }
+      },
+      width: 400,
+      height: 400,
+    });
+  }
 
-    requestAnimationFrame(mpTick);
-  });
+  await mpCamera.start();
 }
 
 function onMPResults(results) {
@@ -960,7 +884,7 @@ function onMPResults(results) {
 
   const cW = $('canvas-cam').width, cH = $('canvas-cam').height;
   ctxCam.drawImage(results.image, -cW, 0, cW, cH);
-  ctxCam.restore();
+  //ctxCam.restore();
   ctxOverlay.clearRect(0, 0, cW, cH);
 
   if (!results.poseLandmarks) return;
@@ -1103,29 +1027,13 @@ async function startTM() {
   const cfg = MODELS[selectedKey];
   if (!cfg) throw new Error("No hay modelo configurado para: " + selectedKey);
 
-  await ensureSharedCamera();
+  // TM siempre trabaja en 400x400 internamente
+  model = await tmPose.load(cfg.url + "model.json", cfg.url + "metadata.json");
+  webcam = new tmPose.Webcam(400, 400, true);
+  await webcam.setup();
+  await webcam.play();
 
-  if (!modelCache[selectedKey]) {
-    modelCache[selectedKey] = await tmPose.load(cfg.url + "model.json", cfg.url + "metadata.json");
-  }
-  model = modelCache[selectedKey];
-
-  if (!tmCanvas) {
-    tmCanvas = document.createElement("canvas");
-    tmCanvas.width = 400;
-    tmCanvas.height = 400;
-    tmCtx = tmCanvas.getContext("2d");
-  }
-
-  webcam = {
-    canvas: tmCanvas,
-    update() {
-      drawSharedVideoToCanvas(tmCanvas, true);
-    },
-    stop() { }
-  };
-
-  mirrorCanvas = mirrorCanvas || document.createElement("canvas");
+  mirrorCanvas = document.createElement("canvas");
   mirrorCanvas.width = 400;
   mirrorCanvas.height = 400;
   ctxMirror = mirrorCanvas.getContext("2d");
@@ -1151,7 +1059,6 @@ async function predictTM() {
   let input;
   if (isLeftArm) {
     ctxMirror.save();
-    ctxMirror.clearRect(0, 0, 400, 400);
     ctxMirror.scale(-1, 1);
     ctxMirror.drawImage(webcam.canvas, -400, 0, 400, 400);
     ctxMirror.restore();
@@ -1163,6 +1070,7 @@ async function predictTM() {
   const { pose, posenetOutput } = await model.estimatePose(input);
   const predictions = await model.predict(posenetOutput);
 
+  // 👇 Escalar el feed al tamaño real del canvas
   if (ctxCam) {
     const dw = ctxCam.canvas.width;
     const dh = ctxCam.canvas.height;
@@ -1174,6 +1082,7 @@ async function predictTM() {
   }
 
   if (pose) {
+    // 👇 Escalar keypoints al tamaño real del canvas
     const dw = ctxOverlay?.canvas.width || 400;
     const dh = ctxOverlay?.canvas.height || 400;
     const scaleX = dw / 400;
@@ -1292,8 +1201,6 @@ function processRepTM(predictions, cfg) {
 // CONTAR REP
 // ================================================================
 function countRep() {
-  if (window.RotaCare?.pauseVisionReps) return;
-
   if (isLeftArm) repsLeft++;
   else repsRight++;
 
@@ -1729,18 +1636,6 @@ window.VisionSystem = {
   reset: function () {
     resetAll();
   },
-
-  requestCameraPermission: async function () {
-    await ensureSharedCamera();
-    return true;
-  },
-
-  releaseCamera: function () {
-    releaseSharedCamera();
-  },
-
-  startMusic,
-  stopMusic,
 
   on,
   off,

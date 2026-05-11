@@ -48,7 +48,6 @@ const state = {
   currentArm: "right",
 
   musicStarted: false,
-  cameraReady: false,
   routineTotalReps: 0,
   routineMaxStreak: 0,
   currentExerciseMaxStreak: 0,
@@ -242,21 +241,14 @@ async function startRoutine() {
   state.currentExerciseMaxStreak = 0;
   state.completedExerciseKeys = new Set();
 
-  // Activación de audio y permiso de cámara desde el clic del usuario.
+  // Mantiene vision.js en su forma original: el permiso de cámara se solicita
+  // cuando VisionSystem.start(...) inicia la detección por primera vez.
   try {
     if (typeof getAudio === "function") {
       await getAudio().resume();
     }
-
-    if (window.VisionSystem?.requestCameraPermission) {
-      await VisionSystem.requestCameraPermission();
-      state.cameraReady = true;
-    }
   } catch (err) {
-    console.error("No se pudo preparar la cámara:", err);
-    alert("No se pudo acceder a la cámara. Revisa los permisos del navegador y vuelve a intentarlo.");
-    goTo("instructions");
-    return;
+    console.warn("No se pudo preparar el audio:", err);
   }
 
   startPreparation();
