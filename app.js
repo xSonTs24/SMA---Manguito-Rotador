@@ -1,11 +1,13 @@
 // app.js — flujo de pantallas + integración con VisionSystem
 
+const ASSET_ROOT = "imagenes%20Rotacare";
+
 const exercises = [
   {
     key: "lateral",
     name: "Elevación Lateral",
     short: "Lateral",
-    image: "img/lateral.png",
+    image: `${ASSET_ROOT}/ejercicios/lateral.png`,
     instruction: "Levanta el brazo hacia un costado, sin superar la altura del hombro.",
     model: "lateral",
     changeMsg: "Ahora vamos con el brazo izquierdo",
@@ -15,7 +17,7 @@ const exercises = [
     key: "frontal",
     name: "Elevación Frontal",
     short: "Frontal",
-    image: "img/frontal.png",
+    image: `${ASSET_ROOT}/ejercicios/frontal.png`,
     instruction: "Eleva el brazo al frente con control, hasta la altura del hombro.",
     model: "frontal",
     changeMsg: "Ahora vamos con el brazo izquierdo",
@@ -25,51 +27,11 @@ const exercises = [
     key: "rotacion",
     name: "Rotación",
     short: "Rotación",
-    image: "img/rotacion.png",
+    image: `${ASSET_ROOT}/ejercicios/rotacion.png`,
     instruction: "Realiza la rotación con el codo cerca del cuerpo y sin movimientos bruscos.",
     model: "rotacion",
     changeMsg: "Ahora vamos con el brazo izquierdo",
     tip: "La clave es la estabilidad: prioriza técnica sobre velocidad."
-  },
-  {
-    key: "lateral",
-    name: "Elevación Lateral",
-    short: "Lateral",
-    image: "img/lateral.png",
-    instruction: "Levanta el brazo hacia un costado, sin superar la altura del hombro.",
-    model: "lateral",
-    changeMsg: "Ahora vamos con el brazo izquierdo",
-    tip: "Mantén el hombro relajado y controla el movimiento sin balancear el torso."
-  },
-  {
-    key: "frontal",
-    name: "Elevación Frontal",
-    short: "Frontal",
-    image: "img/frontal.png",
-    instruction: "Eleva el brazo al frente con control, hasta la altura del hombro.",
-    model: "frontal",
-    changeMsg: "Ahora vamos con el brazo izquierdo",
-    tip: "Evita inclinar la espalda y mueve el brazo de forma suave."
-  },
-  {
-    key: "rotacion",
-    name: "Rotación Interna",
-    short: "Rotación",
-    image: "img/rotacion.png",
-    instruction: "Gira el brazo con el hombro estable y sin forzar el rango.",
-    model: "rotacion",
-    changeMsg: "Ahora vamos con el brazo izquierdo",
-    tip: "Si pierdes control, reduce la velocidad del movimiento."
-  },
-  {
-    key: "lateral",
-    name: "Elevación Lateral",
-    short: "Lateral",
-    image: "img/lateral.png",
-    instruction: "Levanta el brazo hacia un costado, sin superar la altura del hombro.",
-    model: "lateral",
-    changeMsg: "Ahora vamos con el brazo izquierdo",
-    tip: "Mantén el hombro relajado y controla el movimiento sin balancear el torso."
   }
 ];
 
@@ -79,9 +41,18 @@ const state = {
   prepTimer: null,
   exerciseTimer: null,
   randomEventTimer: null,
-  exerciseSeconds: 60,
-  armSwitchAt: 30,
+  completeTimer: null,
+
+  // Duración de cada brazo. El flujo queda: derecho 30s → cambio → izquierdo 30s.
+  exerciseSeconds: 30,
+  currentArm: "right",
+
   musicStarted: false,
+  cameraReady: false,
+  routineTotalReps: 0,
+  routineMaxStreak: 0,
+  currentExerciseMaxStreak: 0,
+  completedExerciseKeys: new Set(),
 };
 
 const els = {
@@ -106,13 +77,18 @@ const els = {
   countTotal: () => document.getElementById("count-total"),
   countScore: () => document.getElementById("count-score"),
   comboCount: () => document.getElementById("combo-count"),
+  resultStreak: () => document.getElementById("result-streak"),
+  completeNextCount: () => document.getElementById("complete-next-count"),
+  completeNextLabel: () => document.getElementById("complete-next-label"),
+  exerciseProgressFill: () => document.getElementById("exercise-progress-fill"),
+  changeExerciseName: () => document.getElementById("change-exercise-name"),
   multiplier: () => document.getElementById("multiplier"),
   phaseBox: () => document.getElementById("phase-box"),
   feedback: () => document.getElementById("feedback"),
 };
 
 function isExerciseVisible() {
-  return document.getElementById("exercise-screen")?.classList.contains("active");
+  return document.getElementById("screen-exercise")?.classList.contains("active");
 }
 
 function goTo(screen) {
@@ -154,6 +130,7 @@ function setActiveExerciseUI(ex) {
     };
   }
   if (els.exerciseName()) els.exerciseName().textContent = ex.name;
+  if (els.changeExerciseName()) els.changeExerciseName().textContent = ex.name;
   if (els.changeMessage()) els.changeMessage().textContent = ex.changeMsg;
   if (els.finalTip()) els.finalTip().textContent = ex.tip;
 }
@@ -161,9 +138,8 @@ function setActiveExerciseUI(ex) {
 function resetPrepBar() {
   if (els.prepBar()) els.prepBar().style.width = "0%";
   if (els.prepCountdown()) els.prepCountdown().textContent = "Prepárate";
-  if (els.prepSeconds()) els.prepSeconds().textContent = "5s";
+  if (els.prepSeconds()) els.prepSeconds().textContent = "5";
 }
-
 function ensureMusicStarted() {
   if (state.musicStarted) return;
   try {
@@ -185,10 +161,14 @@ function bindVisionEvents() {
     if (els.countReps()) els.countReps().textContent = data.total ?? 0;
     if (els.countTotal()) els.countTotal().textContent = data.total ?? 0;
     if (els.countScore()) els.countScore().textContent = data.score ?? 0;
-    if (els.comboCount()) els.comboCount().textContent = `x${data.combo ?? 0}`;
+    if (els.comboCount()) els.comboCount().textContent = String(data.combo ?? 0);
   });
 
   VisionSystem.on("combo", (data) => {
+    const streak = Number(data.value ?? 0);
+    state.currentExerciseMaxStreak = Math.max(state.currentExerciseMaxStreak, streak);
+    state.routineMaxStreak = Math.max(state.routineMaxStreak, streak);
+    if (els.comboCount()) els.comboCount().textContent = String(streak);
     if (els.multiplier()) els.multiplier().textContent = `x${(data.multiplier ?? 1).toFixed(1)}`;
   });
 
@@ -224,30 +204,22 @@ function startPreparation() {
   goTo("explanation");
   const ex = getCurrentExercise();
   setActiveExerciseUI(ex);
+  resetPrepBar();
 
-  const totalMs = 500; // 50 pasos x 100ms = 5 segundos
-  const circumference = 276.46;
   let progress = 0;
   let seconds = 5;
-
-  const circleFill = document.getElementById("prep-circle-fill");
-  const prepSecs = document.getElementById("prep-seconds");
-
-  if (circleFill) circleFill.style.strokeDashoffset = "0";
-  if (prepSecs) prepSecs.textContent = "5";
 
   state.prepTimer = setInterval(() => {
     progress += 2;
 
-    // Animar círculo (va vaciándose)
-    if (circleFill) {
-      circleFill.style.strokeDashoffset = String((progress / 100) * circumference);
+    if (els.prepBar()) {
+      els.prepBar().style.width = `${Math.min(100, progress)}%`;
     }
 
     const computedSeconds = Math.max(0, 5 - Math.floor((progress / 100) * 5));
     if (computedSeconds !== seconds) {
       seconds = computedSeconds;
-      if (prepSecs) prepSecs.textContent = String(seconds);
+      if (els.prepSeconds()) els.prepSeconds().textContent = String(seconds);
     }
 
     if (progress >= 100) {
@@ -256,14 +228,35 @@ function startPreparation() {
     }
   }, 100);
 }
+async function startRoutine() {
+  clearInterval(state.prepTimer);
+  clearInterval(state.exerciseTimer);
+  clearInterval(state.completeTimer);
+  stopRandomEvents();
 
-function startRoutine() {
-  state.routine = shuffle([...exercises]);
+  state.routine = [...exercises];
   state.currentIndex = 0;
+  state.currentArm = "right";
+  state.routineTotalReps = 0;
+  state.routineMaxStreak = 0;
+  state.currentExerciseMaxStreak = 0;
+  state.completedExerciseKeys = new Set();
 
-  // 🔥 FORZAR ACTIVACIÓN DE AUDIO
-  if (typeof getAudio === "function") {
-    getAudio().resume();
+  // Activación de audio y permiso de cámara desde el clic del usuario.
+  try {
+    if (typeof getAudio === "function") {
+      await getAudio().resume();
+    }
+
+    if (window.VisionSystem?.requestCameraPermission) {
+      await VisionSystem.requestCameraPermission();
+      state.cameraReady = true;
+    }
+  } catch (err) {
+    console.error("No se pudo preparar la cámara:", err);
+    alert("No se pudo acceder a la cámara. Revisa los permisos del navegador y vuelve a intentarlo.");
+    goTo("instructions");
+    return;
   }
 
   startPreparation();
@@ -276,18 +269,31 @@ function startExercise() {
     return;
   }
 
+  clearInterval(state.exerciseTimer);
+  clearInterval(state.completeTimer);
+  stopRandomEvents();
+
   goTo("exercise");
   setActiveExerciseUI(ex);
+
+  state.currentArm = "right";
+  state.currentExerciseMaxStreak = 0;
+  window.RotaCare = window.RotaCare || {};
+  window.RotaCare.pauseVisionReps = false;
+
   if (els.armLabel()) els.armLabel().textContent = "Brazo Derecho";
   if (els.timeLeft()) els.timeLeft().textContent = formatTime(state.exerciseSeconds);
+  if (els.exerciseProgressFill()) els.exerciseProgressFill().style.width = "0%";
+  if (els.comboCount()) els.comboCount().textContent = "0";
   setMainCounter(0);
 
-  // Iniciar música una sola vez, ya dentro de la interacción del usuario.
   ensureMusicStarted();
 
-  // Dar tiempo a que la pantalla esté visible antes de arrancar la cámara.
-setTimeout(async () => {
+  setTimeout(async () => {
+    if (!document.getElementById("screen-exercise")?.classList.contains("active")) return;
+
     if (typeof resizeCanvases === "function") resizeCanvases();
+
     if (window.VisionSystem) {
       VisionSystem.reset();
 
@@ -295,37 +301,43 @@ setTimeout(async () => {
         await VisionSystem.start(ex.model);
       } catch (e) {
         console.error("Error iniciando visión:", e);
+        alert("No se pudo iniciar la detección. Revisa la cámara o recarga la página.");
         return;
       }
     }
 
     startExerciseTimer();
     startRandomEvents();
-
-  }, 800); // ⬅️ más tiempo para render + cámara
+  }, 500);
 }
 
 function startExerciseTimer() {
   clearInterval(state.exerciseTimer);
 
   let remaining = state.exerciseSeconds;
-  let switched = false;
 
   if (els.timeLeft()) els.timeLeft().textContent = formatTime(remaining);
+  if (els.exerciseProgressFill()) els.exerciseProgressFill().style.width = "0%";
 
   state.exerciseTimer = setInterval(() => {
     remaining -= 1;
-    if (els.timeLeft()) els.timeLeft().textContent = formatTime(Math.max(0, remaining));
+    const safeRemaining = Math.max(0, remaining);
+    const elapsed = state.exerciseSeconds - safeRemaining;
 
-    if (!switched && remaining === state.armSwitchAt) {
-      switched = true;
-      showChangeArm();
+    if (els.timeLeft()) els.timeLeft().textContent = formatTime(safeRemaining);
+    if (els.exerciseProgressFill()) {
+      els.exerciseProgressFill().style.width = `${Math.min(100, (elapsed / state.exerciseSeconds) * 100)}%`;
     }
 
     if (remaining <= 0) {
       clearInterval(state.exerciseTimer);
       stopRandomEvents();
-      completeCurrentExercise();
+
+      if (state.currentArm === "right") {
+        showChangeArm();
+      } else {
+        completeCurrentExercise();
+      }
     }
   }, 1000);
 }
@@ -361,43 +373,92 @@ function stopRandomEvents() {
 }
 
 function showChangeArm() {
+  window.RotaCare = window.RotaCare || {};
+  window.RotaCare.pauseVisionReps = true;
+
   goTo("change-arm");
+
   if (els.changeMessage()) {
     els.changeMessage().textContent = "Ahora vamos con el brazo izquierdo";
   }
 
   setTimeout(() => {
+    state.currentArm = "left";
+
     if (window.VisionSystem) {
       VisionSystem.changeArm();
     }
+
+    if (els.armLabel()) els.armLabel().textContent = "Brazo Izquierdo";
+    if (els.timeLeft()) els.timeLeft().textContent = formatTime(state.exerciseSeconds);
+    if (els.exerciseProgressFill()) els.exerciseProgressFill().style.width = "0%";
+
+    window.RotaCare.pauseVisionReps = false;
+
     goTo("exercise");
+    startExerciseTimer();
+    startRandomEvents();
   }, 2500);
 }
 
 function completeCurrentExercise() {
-  if (window.VisionSystem) {
-    VisionSystem.stop();
-  }
+  stopRandomEvents();
+  clearInterval(state.completeTimer);
+
+  window.RotaCare = window.RotaCare || {};
+  window.RotaCare.pauseVisionReps = true;
 
   const stateData = window.VisionSystem?.getState?.() || {};
   const left = stateData.repsLeft ?? 0;
   const right = stateData.repsRight ?? 0;
   const total = stateData.totalReps ?? 0;
+  const streak = state.currentExerciseMaxStreak ?? 0;
+
+  state.routineTotalReps += total;
+
+  if (window.VisionSystem) {
+    VisionSystem.stop();
+  }
 
   if (els.resultLeft()) els.resultLeft().textContent = left;
   if (els.resultRight()) els.resultRight().textContent = right;
   if (els.resultReps()) els.resultReps().textContent = total;
+  if (els.resultStreak()) els.resultStreak().textContent = streak;
 
   const timeEl = document.getElementById("result-time");
-  if (timeEl) timeEl.textContent = formatTime(state.exerciseSeconds);
+  if (timeEl) timeEl.textContent = formatTime(state.exerciseSeconds * 2);
 
   goTo("complete-ex");
+  startCompleteCountdown();
+}
 
-  // No hace falta tocar siguiente: avanza solo.
-  setTimeout(() => nextExercise(), 2800);
+function startCompleteCountdown() {
+  clearInterval(state.completeTimer);
+
+  let remaining = 3;
+  const isLast = state.currentIndex >= state.routine.length - 1;
+
+  if (els.completeNextLabel()) {
+    els.completeNextLabel().textContent = isLast ? "Resumen final en" : "Siguiente ejercicio en";
+  }
+  if (els.completeNextCount()) els.completeNextCount().textContent = String(remaining);
+
+  state.completeTimer = setInterval(() => {
+    remaining -= 1;
+    if (els.completeNextCount()) els.completeNextCount().textContent = String(Math.max(0, remaining));
+
+    if (remaining <= 0) {
+      clearInterval(state.completeTimer);
+      nextExercise();
+    }
+  }, 1000);
 }
 
 function nextExercise() {
+  clearInterval(state.completeTimer);
+  window.RotaCare = window.RotaCare || {};
+  window.RotaCare.pauseVisionReps = false;
+
   state.currentIndex += 1;
 
   if (state.currentIndex >= state.routine.length) {
@@ -411,8 +472,7 @@ function nextExercise() {
 function finishRoutine() {
   stopRandomEvents();
 
-  const stateData = window.VisionSystem?.getState?.() || {};
-  const total = stateData.totalReps ?? 0;
+  const total = state.routineTotalReps ?? 0;
 
   if (els.totalReps()) els.totalReps().textContent = total;
   goTo("finish");
@@ -421,6 +481,7 @@ function finishRoutine() {
 function restartRoutine() {
   clearInterval(state.prepTimer);
   clearInterval(state.exerciseTimer);
+  clearInterval(state.completeTimer);
   stopRandomEvents();
 
   if (window.VisionSystem) {
@@ -428,11 +489,27 @@ function restartRoutine() {
     VisionSystem.stop();
   }
 
+  window.RotaCare = window.RotaCare || {};
+  window.RotaCare.pauseVisionReps = false;
+
   state.musicStarted = false;
+  state.currentArm = "right";
+  state.routineTotalReps = 0;
+  state.routineMaxStreak = 0;
+  state.currentExerciseMaxStreak = 0;
+  state.completedExerciseKeys = new Set();
   goTo("home");
 }
 
+function exposeGlobalControls() {
+  window.goTo = goTo;
+  window.startRoutine = startRoutine;
+  window.nextExercise = nextExercise;
+  window.restartRoutine = restartRoutine;
+}
+
 function initApp() {
+  exposeGlobalControls();
   goTo("home");
   bindVisionEvents();
   resetPrepBar();
@@ -441,10 +518,41 @@ function initApp() {
   setActiveExerciseUI(active);
 
   const btnOk = document.getElementById("btn-instructions-ok");
-  if (btnOk) btnOk.addEventListener("click", () => startRoutine());
+  if (btnOk) {
+    btnOk.onclick = () => startRoutine();
+  }
+
+  console.log("RotaCare UI monolítica inicializada correctamente");
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  console.log("UI lista");
+let appInitialized = false;
+function bootApp() {
+  if (appInitialized) return;
+  appInitialized = true;
   initApp();
+}
+
+if (document.readyState === "loading") {
+  window.addEventListener("DOMContentLoaded", bootApp);
+} else {
+  bootApp();
+}
+
+window.addEventListener("pageshow", (event) => {
+  // Cuando el navegador restaura la página desde bfcache, se limpia el estado visual.
+  if (event.persisted) {
+    try { restartRoutine(); } catch (_) { goTo("home"); }
+  }
+});
+
+window.addEventListener("beforeunload", () => {
+  try {
+    clearInterval(state.prepTimer);
+    clearInterval(state.exerciseTimer);
+    clearInterval(state.completeTimer);
+    stopRandomEvents();
+    if (window.VisionSystem?.releaseCamera) VisionSystem.releaseCamera();
+  } catch (e) {
+    console.warn("No se pudo limpiar la app antes de recargar:", e);
+  }
 });
